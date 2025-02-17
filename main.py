@@ -1,29 +1,59 @@
-import datetime as dt
+from universe import universe,spy
 import matplotlib.pyplot as plt
-from matplotlib import style
+import numpy as np
+import math
 import pandas as pd
-import pandas_datareader.data as web
-import yahoo_fin.stock_info as si
-import backtrader as bt
-from pandas_datareader.wb import download
 
-style.use('ggplot')
-start = dt.datetime(2020, 1, 1)
-end = dt.datetime(2024, 12, 31)
+startingBalance = 10000
+dailyGain = []
+benchmarkList = []
 
-dow_list = si.tickers_dow()
-historical_datas = {}
-for ticker in dow_list:
-    historical_datas[ticker] = si.get_data(ticker, start_date=start, end_date=end, interval='1d')
+high = startingBalance
+low = startingBalance
+lookback = 5
+symbolData = [0] * (len(spy)-lookback)
 
-if __name__ == '__main__':
-    cerebro = bt.Cerebro()
-    cerebro.broker.setcash(10000)
-    data = bt.feeds.PandasData
-    cerebro.adddata(dow_list)
 
-    print('Starting Portfolio Value: %.2f' % cerebro.broker.getvalue())
+def benchmark():
+    initialBuy = startingBalance/spy.loc[lookback,'Open']
+    for row in range(len(spy)-lookback):
+        perShareGain = spy.loc[row+lookback,'Close'] - spy.loc[lookback,'Open']
+        spyGain = perShareGain * initialBuy + startingBalance
+        benchmarkList.append(spyGain)
 
-    cerebro.run()
+def strategy(symbol):
+    df = universe[symbol]
+    pnl = 0
+    index = 0
 
-    print('Final Portfolio Value: %.2f' % cerebro.broker.getvalue())
+    for row in range(len(df)-lookback):
+        if df.loc[row, 'Open'] > df.loc[row, 'VWAP'] or df.loc[row, 'Open'] < df.loc[row, 'VWAP']:
+            perShareGain = df.loc[row+lookback, 'Close']-df.loc[row+lookback, 'Open']
+            if perShareGain>0 or perShareGain<0:
+                pnl += perShareGain * startingBalance/spy.loc[row+lookback,'Open']
+                symbolData[index] += pnl + startingBalance
+                index += 1
+            else:
+                pnl += 0
+                symbolData[index] += pnl + startingBalance
+                index += 1
+        else:
+            pnl += 0
+            symbolData[index] += 0 + startingBalance
+            index += 1
+
+print(f'Starting balance: {startingBalance}')
+benchmark()
+startingBalance = startingBalance/len(universe)
+for stock in universe:
+    strategy(str(stock))
+print(f'Ending balance: {symbolData[-1]}')
+
+x = np.linspace(0, len(symbolData), len(symbolData))
+plt.plot(x,symbolData, label='Alpha Performance')
+plt.plot(x,benchmarkList, label='SPY Performance')
+plt.legend()
+plt.xlabel('Date')
+plt.ylabel('P&L')
+plt.title('Daily P&L')
+plt.savefig('plots/DailyP&L.png')
