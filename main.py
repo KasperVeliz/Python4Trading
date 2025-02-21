@@ -22,15 +22,21 @@ def benchmark():
         benchmarkList.append(spyGain)
 
 def strategy(symbol):
+    '''
+    \
+    :param symbol: stock ticker as string
+    :return null:
+    '''
     df = universe[symbol]
     pnl = 0
     index = 0
 
     for row in range(len(df)-lookback):
+
         if df.loc[row, 'Open'] > df.loc[row, 'VWAP'] or df.loc[row, 'Open'] < df.loc[row, 'VWAP']:
             perShareGain = df.loc[row+lookback, 'Close']-df.loc[row+lookback, 'Open']
             if perShareGain>0 or perShareGain<0:
-                pnl += perShareGain * startingBalance/spy.loc[row+lookback,'Open']
+                pnl += perShareGain * startingBalance/df.loc[row+lookback,'Open']
                 symbolData[index] += pnl + startingBalance
                 index += 1
             else:

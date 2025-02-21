@@ -1,2 +1,2 @@
-API_KEY = 'PK38031NOCY9CWILXJVR'
-API_SECRET = 'rOhn14oZB87hgIssMCSfx5iapwa8TrTs4GcPiHem'
+API_KEY = #Alpacas API Key
+API_SECRET = #Alpacas API Secret Key
